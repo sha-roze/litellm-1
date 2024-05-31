@@ -7,6 +7,75 @@ import uuid, json, sys, os
 from litellm.types.router import UpdateRouterConfig
 from litellm.types.utils import ProviderField
 
+
+class LitellmUserRoles(str, enum.Enum):
+    """
+    Admin Roles:
+    PROXY_ADMIN: admin over the platform
+    PROXY_ADMIN_VIEW_ONLY: can login, view all own keys, view all spend
+
+    Internal User Roles:
+    INTERNAL_USER: can login, view/create/delete their own keys, view their spend
+    INTERNAL_USER_VIEW_ONLY: can login, view their own keys, view their own spend
+
+
+    Team Roles:
+    TEAM: used for JWT auth
+
+
+    Customer Roles:
+    CUSTOMER: External users -> these are customers
+
+    """
+
+    # Admin Roles
+    PROXY_ADMIN = "proxy_admin"
+    PROXY_ADMIN_VIEW_ONLY = "proxy_admin_viewer"
+
+    # Internal User Roles
+    INTERNAL_USER = "internal_user"
+    INTERNAL_USER_VIEW_ONLY = "internal_user_viewer"
+
+    # Team Roles
+    TEAM = "team"
+
+    # Customer Roles - External users of proxy
+    CUSTOMER = "customer"
+
+    def __str__(self):
+        return str(self.value)
+
+    @property
+    def description(self):
+        """
+        Descriptions for the enum values
+        """
+        descriptions = {
+            "proxy_admin": "admin over litellm proxy, has all permissions",
+            "proxy_admin_viewer": "view all keys, view all spend",
+            "internal_user": "view/create/delete their own keys, view their own spend",
+            "internal_user_viewer": "view their own keys, view their own spend",
+            "team": "team scope used for JWT auth",
+            "customer": "customer",
+        }
+        return descriptions.get(self.value, "")
+
+    @property
+    def ui_label(self):
+        """
+        UI labels for the enum values
+        """
+        ui_labels = {
+            "proxy_admin": "Admin (All Permissions)",
+            "proxy_admin_viewer": "Admin (View Only)",
+            "internal_user": "Internal User (Create/Delete/View)",
+            "internal_user_viewer": "Internal User (View Only)",
+            "team": "Team",
+            "customer": "Customer",
+        }
+        return ui_labels.get(self.value, "")
+
+
 AlertType = Literal[
     "llm_exceptions",
     "llm_too_slow",
@@ -99,6 +168,14 @@ class LiteLLMRoutes(enum.Enum):
         # moderations
         "/moderations",
         "/v1/moderations",
+        # batches
+        "/v1/batches",
+        "/batches",
+        "/v1/batches{batch_id}",
+        "/batches{batch_id}",
+        # files
+        "/v1/files",
+        "/files",
         # models
         "/models",
         "/v1/models",
@@ -490,7 +567,16 @@ class LiteLLM_ModelTable(LiteLLMBase):
 class NewUserRequest(GenerateKeyRequest):
     max_budget: Optional[float] = None
     user_email: Optional[str] = None
-    user_role: Optional[str] = None
+    user_role: Optional[
+        Literal[
+            LitellmUserRoles.PROXY_ADMIN,
+            LitellmUserRoles.PROXY_ADMIN_VIEW_ONLY,
+            LitellmUserRoles.INTERNAL_USER,
+            LitellmUserRoles.INTERNAL_USER_VIEW_ONLY,
+            LitellmUserRoles.TEAM,
+            LitellmUserRoles.CUSTOMER,
+        ]
+    ] = None
     teams: Optional[list] = None
     organization_id: Optional[str] = None
     auto_create_key: bool = (
@@ -509,7 +595,16 @@ class UpdateUserRequest(GenerateRequestBase):
     user_email: Optional[str] = None
     spend: Optional[float] = None
     metadata: Optional[dict] = None
-    user_role: Optional[str] = None
+    user_role: Optional[
+        Literal[
+            LitellmUserRoles.PROXY_ADMIN,
+            LitellmUserRoles.PROXY_ADMIN_VIEW_ONLY,
+            LitellmUserRoles.INTERNAL_USER,
+            LitellmUserRoles.INTERNAL_USER_VIEW_ONLY,
+            LitellmUserRoles.TEAM,
+            LitellmUserRoles.CUSTOMER,
+        ]
+    ] = None
     max_budget: Optional[float] = None
 
     @root_validator(pre=True)
@@ -1043,6 +1138,7 @@ class LiteLLM_VerificationTokenView(LiteLLM_VerificationToken):
     end_user_id: Optional[str] = None
     end_user_tpm_limit: Optional[int] = None
     end_user_rpm_limit: Optional[int] = None
+    end_user_max_budget: Optional[float] = None
 
 
 class UserAPIKeyAuth(
@@ -1053,7 +1149,16 @@ class UserAPIKeyAuth(
     """
 
     api_key: Optional[str] = None
-    user_role: Optional[Literal["proxy_admin", "app_owner", "app_user"]] = None
+    user_role: Optional[
+        Literal[
+            LitellmUserRoles.PROXY_ADMIN,
+            LitellmUserRoles.PROXY_ADMIN_VIEW_ONLY,
+            LitellmUserRoles.INTERNAL_USER,
+            LitellmUserRoles.INTERNAL_USER_VIEW_ONLY,
+            LitellmUserRoles.TEAM,
+            LitellmUserRoles.CUSTOMER,
+        ]
+    ] = None
     allowed_model_region: Optional[Literal["eu"]] = None
 
     @root_validator(pre=True)
@@ -1170,6 +1275,7 @@ class CallInfo(LiteLLMBase):
     spend: float
     max_budget: Optional[float] = None
     token: str = Field(description="Hashed value of that key")
+    customer_id: Optional[str] = None
     user_id: Optional[str] = None
     team_id: Optional[str] = None
     user_email: Optional[str] = None
@@ -1180,9 +1286,13 @@ class CallInfo(LiteLLMBase):
 
 class WebhookEvent(CallInfo):
     event: Literal[
-        "budget_crossed", "threshold_crossed", "projected_limit_exceeded", "key_created"
+        "budget_crossed",
+        "threshold_crossed",
+        "projected_limit_exceeded",
+        "key_created",
+        "spend_tracked",
     ]
-    event_group: Literal["user", "key", "team", "proxy"]
+    event_group: Literal["internal_user", "key", "team", "proxy", "customer"]
     event_message: str  # human-readable description of event
 
 
@@ -1214,6 +1324,7 @@ class InvitationModel(LiteLLMBase):
     created_by: str
     updated_at: datetime
     updated_by: str
+
 
 class ConfigFieldInfo(LiteLLMBase):
     field_name: str
