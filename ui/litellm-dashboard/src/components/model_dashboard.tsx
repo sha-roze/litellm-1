@@ -141,6 +141,7 @@ enum Providers {
   OpenAI_Compatible = "OpenAI-Compatible Endpoints (Groq, Together AI, Mistral AI, etc.)",
   Vertex_AI = "Vertex AI (Anthropic, Gemini, etc.)",
   Databricks = "Databricks",
+  Ollama = "Ollama",
 }
 
 const provider_map: Record<string, string> = {
@@ -152,6 +153,7 @@ const provider_map: Record<string, string> = {
   OpenAI_Compatible: "openai",
   Vertex_AI: "vertex_ai",
   Databricks: "databricks",
+  Ollama: "ollama",
 };
 
 const retry_policy_map: Record<string, string> = {
@@ -310,7 +312,7 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
     useState<RetryPolicyObject | null>(null);
   const [defaultRetry, setDefaultRetry] = useState<number>(0);
 
-  const [globalExceptionData, setGlobalExceptionData] =  useState<GlobalExceptionActivityData>({} as GlobalExceptionActivityData);
+  const [globalExceptionData, setGlobalExceptionData] = useState<GlobalExceptionActivityData>({} as GlobalExceptionActivityData);
   const [globalExceptionPerDeployment, setGlobalExceptionPerDeployment] = useState<any[]>([]);
 
   function formatCreatedAt(createdAt: string | null) {
@@ -677,7 +679,7 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
 
         console.log("dailyExceptionsPerDeplyment:", dailyExceptionsPerDeplyment);
 
-      
+
         console.log("slowResponses:", slowResponses);
 
         setSlowResponsesData(slowResponses);
@@ -949,21 +951,21 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
           endTime?.toISOString().split('T')[0],
           modelGroup,
         );
-  
+
         setGlobalExceptionData(dailyExceptions);
-  
+
         const dailyExceptionsPerDeplyment = await adminGlobalActivityExceptionsPerDeployment(
           accessToken,
           startTime?.toISOString().split('T')[0],
           endTime?.toISOString().split('T')[0],
           modelGroup,
         )
-  
+
         setGlobalExceptionPerDeployment(dailyExceptionsPerDeplyment);
 
       }
 
-      
+
     } catch (error) {
       console.error("Failed to fetch model metrics", error);
     }
@@ -1315,11 +1317,11 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                                 ? model.input_cost
                                 : model.litellm_params.input_cost_per_token
                                   ? (
-                                      Number(
-                                        model.litellm_params
-                                          .input_cost_per_token
-                                      ) * 1000000
-                                    ).toFixed(2)
+                                    Number(
+                                      model.litellm_params
+                                        .input_cost_per_token
+                                    ) * 1000000
+                                  ).toFixed(2)
                                   : null}
                             </pre>
                           </TableCell>
@@ -1335,11 +1337,11 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                                 ? model.output_cost
                                 : model.litellm_params.output_cost_per_token
                                   ? (
-                                      Number(
-                                        model.litellm_params
-                                          .output_cost_per_token
-                                      ) * 1000000
-                                    ).toFixed(2)
+                                    Number(
+                                      model.litellm_params
+                                        .output_cost_per_token
+                                    ) * 1000000
+                                  ).toFixed(2)
                                   : null}
                             </pre>
                           </TableCell>
@@ -1347,8 +1349,8 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                             <p style={{ fontSize: "10px" }}>
                               {premiumUser
                                 ? formatCreatedAt(
-                                    model.model_info.created_at
-                                  ) || "-"
+                                  model.model_info.created_at
+                                ) || "-"
                                 : "-"}
                             </p>
                           </TableCell>
@@ -1538,6 +1540,7 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                     )}
                   {selectedProvider != Providers.Bedrock &&
                     selectedProvider != Providers.Vertex_AI &&
+                    selectedProvider != Providers.Ollama &&
                     (dynamicProviderForm === undefined ||
                       dynamicProviderForm.fields.length == 0) && (
                       <Form.Item
@@ -1598,14 +1601,14 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                   )}
                   {(selectedProvider == Providers.Azure ||
                     selectedProvider == Providers.OpenAI_Compatible) && (
-                    <Form.Item
-                      rules={[{ required: true, message: "Required" }]}
-                      label="API Base"
-                      name="api_base"
-                    >
-                      <TextInput placeholder="https://..." />
-                    </Form.Item>
-                  )}
+                      <Form.Item
+                        rules={[{ required: true, message: "Required" }]}
+                        label="API Base"
+                        name="api_base"
+                      >
+                        <TextInput placeholder="https://..." />
+                      </Form.Item>
+                    )}
                   {selectedProvider == Providers.Azure && (
                     <Form.Item
                       rules={[{ required: true, message: "Required" }]}
@@ -1843,23 +1846,23 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
             </Grid>
 
             <Grid numItems={1} className="gap-2 w-full mt-2">
-                <Card>
+              <Card>
                 <Title>All Up Rate Limit Errors (429) for {selectedModelGroup}</Title>
                 <Grid numItems={1}>
-                <Col>
-                <Subtitle style={{ fontSize: "15px", fontWeight: "normal", color: "#535452"}}>Num Rate Limit Errors { (globalExceptionData.sum_num_rate_limit_exceptions)}</Subtitle>
-                <BarChart
-                    className="h-40"
-                    data={globalExceptionData.daily_data}
-                    index="date"
-                    colors={['rose']}
-                    categories={['num_rate_limit_exceptions']}
-                    onValueChange={(v) => console.log(v)}
-                  />
+                  <Col>
+                    <Subtitle style={{ fontSize: "15px", fontWeight: "normal", color: "#535452" }}>Num Rate Limit Errors {(globalExceptionData.sum_num_rate_limit_exceptions)}</Subtitle>
+                    <BarChart
+                      className="h-40"
+                      data={globalExceptionData.daily_data}
+                      index="date"
+                      colors={['rose']}
+                      categories={['num_rate_limit_exceptions']}
+                      onValueChange={(v) => console.log(v)}
+                    />
                   </Col>
                   <Col>
 
-                {/* <BarChart
+                    {/* <BarChart
                     className="h-40"
                     data={modelExceptions}
                     index="model"
@@ -1867,84 +1870,84 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                     stack={true}
                     yAxisWidth={30}
               /> */}
-      
 
-                </Col>
+
+                  </Col>
 
                 </Grid>
-                
 
-                </Card>
 
-                {
-                  premiumUser ? ( 
-                    <>
-                    {globalExceptionPerDeployment.map((globalActivity, index) => (
-                <Card key={index}>
-                  <Title>{globalActivity.api_base ? globalActivity.api_base : "Unknown API Base"}</Title>
-                  <Grid numItems={1}>
-                    <Col>
-                      <Subtitle style={{ fontSize: "15px", fontWeight: "normal", color: "#535452"}}>Num Rate Limit Errors (429) {(globalActivity.sum_num_rate_limit_exceptions)}</Subtitle>
-                      <BarChart
-                        className="h-40"
-                        data={globalActivity.daily_data}
-                        index="date"
-                        colors={['rose']}
-                        categories={['num_rate_limit_exceptions']}
-          
-                        onValueChange={(v) => console.log(v)}
-                      />
-                      
-                    </Col>
-                  </Grid>
-                </Card>
-              ))}
-                    </>
-                  ) : 
+              </Card>
+
+              {
+                premiumUser ? (
                   <>
-                  {globalExceptionPerDeployment && globalExceptionPerDeployment.length > 0 &&
-                    globalExceptionPerDeployment.slice(0, 1).map((globalActivity, index) => (
+                    {globalExceptionPerDeployment.map((globalActivity, index) => (
                       <Card key={index}>
-                        <Title>✨ Rate Limit Errors by Deployment</Title>
-                        <p className="mb-2 text-gray-500 italic text-[12px]">Upgrade to see exceptions for all deployments</p>
-                        <Button variant="primary" className="mb-2">
-                          <a href="https://forms.gle/W3U4PZpJGFHWtHyA9" target="_blank">
-                            Get Free Trial
-                          </a>
-                        </Button>
-                        <Card>
-                        <Title>{globalActivity.api_base}</Title>
+                        <Title>{globalActivity.api_base ? globalActivity.api_base : "Unknown API Base"}</Title>
                         <Grid numItems={1}>
                           <Col>
-                            <Subtitle
-                              style={{
-                                fontSize: "15px",
-                                fontWeight: "normal",
-                                color: "#535452",
-                              }}
-                            >
-                              Num Rate Limit Errors {(globalActivity.sum_num_rate_limit_exceptions)}
-                            </Subtitle>
+                            <Subtitle style={{ fontSize: "15px", fontWeight: "normal", color: "#535452" }}>Num Rate Limit Errors (429) {(globalActivity.sum_num_rate_limit_exceptions)}</Subtitle>
                             <BarChart
-                                className="h-40"
-                                data={globalActivity.daily_data}
-                                index="date"
-                                colors={['rose']}
-                                categories={['num_rate_limit_exceptions']}
-                  
-                                onValueChange={(v) => console.log(v)}
-                              />
+                              className="h-40"
+                              data={globalActivity.daily_data}
+                              index="date"
+                              colors={['rose']}
+                              categories={['num_rate_limit_exceptions']}
+
+                              onValueChange={(v) => console.log(v)}
+                            />
+
                           </Col>
-                          
-                          
                         </Grid>
-                        </Card>
                       </Card>
                     ))}
-                </>
-                }              
-              </Grid>
-              
+                  </>
+                ) :
+                  <>
+                    {globalExceptionPerDeployment && globalExceptionPerDeployment.length > 0 &&
+                      globalExceptionPerDeployment.slice(0, 1).map((globalActivity, index) => (
+                        <Card key={index}>
+                          <Title>✨ Rate Limit Errors by Deployment</Title>
+                          <p className="mb-2 text-gray-500 italic text-[12px]">Upgrade to see exceptions for all deployments</p>
+                          <Button variant="primary" className="mb-2">
+                            <a href="https://forms.gle/W3U4PZpJGFHWtHyA9" target="_blank">
+                              Get Free Trial
+                            </a>
+                          </Button>
+                          <Card>
+                            <Title>{globalActivity.api_base}</Title>
+                            <Grid numItems={1}>
+                              <Col>
+                                <Subtitle
+                                  style={{
+                                    fontSize: "15px",
+                                    fontWeight: "normal",
+                                    color: "#535452",
+                                  }}
+                                >
+                                  Num Rate Limit Errors {(globalActivity.sum_num_rate_limit_exceptions)}
+                                </Subtitle>
+                                <BarChart
+                                  className="h-40"
+                                  data={globalActivity.daily_data}
+                                  index="date"
+                                  colors={['rose']}
+                                  categories={['num_rate_limit_exceptions']}
+
+                                  onValueChange={(v) => console.log(v)}
+                                />
+                              </Col>
+
+
+                            </Grid>
+                          </Card>
+                        </Card>
+                      ))}
+                  </>
+              }
+            </Grid>
+
           </TabPanel>
           <TabPanel>
             <div className="flex items-center">
@@ -1987,7 +1990,7 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                     ([exceptionType, retryPolicyKey], idx) => {
                       let retryCount =
                         modelGroupRetryPolicy?.[selectedModelGroup!]?.[
-                          retryPolicyKey
+                        retryPolicyKey
                         ];
                       if (retryCount == null) {
                         retryCount = defaultRetry;
@@ -2012,7 +2015,7 @@ const ModelDashboard: React.FC<ModelDashboardProps> = ({
                                   (prevModelGroupRetryPolicy) => {
                                     const prevRetryPolicy =
                                       prevModelGroupRetryPolicy?.[
-                                        selectedModelGroup!
+                                      selectedModelGroup!
                                       ] ?? {};
                                     return {
                                       ...(prevModelGroupRetryPolicy ?? {}),

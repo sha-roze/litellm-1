@@ -2,9 +2,10 @@ from itertools import chain
 import requests, types, time
 import json, uuid
 import traceback
-from typing import Optional
+from typing import Optional, List
 import litellm
 import httpx, aiohttp, asyncio
+from litellm.types.utils import ProviderField
 from .prompt_templates.factory import prompt_factory, custom_prompt
 
 
@@ -125,6 +126,17 @@ class OllamaChatConfig:
             )
             and v is not None
         }
+
+    def get_required_params(self) -> List[ProviderField]:
+        """For a given provider, return it's required fiels with a description"""
+        return [
+            ProviderField(
+                field_name="base_url",
+                field_type="string",
+                field_description="Your Ollama API Base",
+                field_value="http://10.10.11.249:11434",
+            )
+        ]
 
     def get_supported_openai_params(
         self,
@@ -299,7 +311,10 @@ def get_ollama_response(
             tool_calls=[
                 {
                     "id": f"call_{str(uuid.uuid4())}",
-                    "function": {"name": function_call["name"], "arguments": json.dumps(function_call["arguments"])},
+                    "function": {
+                        "name": function_call["name"],
+                        "arguments": json.dumps(function_call["arguments"]),
+                    },
                     "type": "function",
                 }
             ],
@@ -307,7 +322,9 @@ def get_ollama_response(
         model_response["choices"][0]["message"] = message
         model_response["choices"][0]["finish_reason"] = "tool_calls"
     else:
-        model_response["choices"][0]["message"]["content"] = response_json["message"]["content"]
+        model_response["choices"][0]["message"]["content"] = response_json["message"][
+            "content"
+        ]
     model_response["created"] = int(time.time())
     model_response["model"] = "ollama/" + model
     prompt_tokens = response_json.get("prompt_eval_count", litellm.token_counter(messages=messages))  # type: ignore
@@ -361,7 +378,10 @@ def ollama_completion_stream(url, api_key, data, logging_obj):
                     tool_calls=[
                         {
                             "id": f"call_{str(uuid.uuid4())}",
-                            "function": {"name": function_call["name"], "arguments": json.dumps(function_call["arguments"])},
+                            "function": {
+                                "name": function_call["name"],
+                                "arguments": json.dumps(function_call["arguments"]),
+                            },
                             "type": "function",
                         }
                     ],
@@ -410,9 +430,10 @@ async def ollama_async_streaming(
                 first_chunk_content = first_chunk.choices[0].delta.content or ""
                 response_content = first_chunk_content + "".join(
                     [
-                    chunk.choices[0].delta.content
-                    async for chunk in streamwrapper
-                    if chunk.choices[0].delta.content]
+                        chunk.choices[0].delta.content
+                        async for chunk in streamwrapper
+                        if chunk.choices[0].delta.content
+                    ]
                 )
                 function_call = json.loads(response_content)
                 delta = litellm.utils.Delta(
@@ -420,7 +441,10 @@ async def ollama_async_streaming(
                     tool_calls=[
                         {
                             "id": f"call_{str(uuid.uuid4())}",
-                            "function": {"name": function_call["name"], "arguments": json.dumps(function_call["arguments"])},
+                            "function": {
+                                "name": function_call["name"],
+                                "arguments": json.dumps(function_call["arguments"]),
+                            },
                             "type": "function",
                         }
                     ],
@@ -483,7 +507,10 @@ async def ollama_acompletion(
                     tool_calls=[
                         {
                             "id": f"call_{str(uuid.uuid4())}",
-                            "function": {"name": function_call["name"], "arguments": json.dumps(function_call["arguments"])},
+                            "function": {
+                                "name": function_call["name"],
+                                "arguments": json.dumps(function_call["arguments"]),
+                            },
                             "type": "function",
                         }
                     ],
@@ -491,7 +518,9 @@ async def ollama_acompletion(
                 model_response["choices"][0]["message"] = message
                 model_response["choices"][0]["finish_reason"] = "tool_calls"
             else:
-                model_response["choices"][0]["message"]["content"] = response_json["message"]["content"]
+                model_response["choices"][0]["message"]["content"] = response_json[
+                    "message"
+                ]["content"]
 
             model_response["created"] = int(time.time())
             model_response["model"] = "ollama_chat/" + data["model"]

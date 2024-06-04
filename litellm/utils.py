@@ -7342,6 +7342,13 @@ def get_provider_fields(custom_llm_provider: str) -> List[ProviderField]:
 
     if custom_llm_provider == "databricks":
         return litellm.DatabricksConfig().get_required_params()
+
+    elif custom_llm_provider == "ollama":
+        return litellm.OllamaConfig().get_required_params()
+
+    elif custom_llm_provider == "ollama_chat":
+        return litellm.OllamaChatConfig().get_required_params()
+
     else:
         return []
 
