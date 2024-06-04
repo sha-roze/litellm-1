@@ -7,7 +7,7 @@ import os, io
 
 sys.path.insert(
     0, os.path.abspath("../..")
-)  # Adds the parent-directory to the system path
+)  # Adds the parent directory to the system path
 import pytest
 import litellm
 from litellm import embedding, completion, completion_cost, Timeout
@@ -152,7 +152,7 @@ async def test_completion_databricks(sync_mode):
     response_format_tests(response=response)
 
 
-# @pytest.mark.skip(reason="local test")
+# @pytest.mark.skip(reason="local only test")
 @pytest.mark.parametrize("sync_mode", [True, False])
 @pytest.mark.asyncio
 async def test_completion_predibase(sync_mode):
@@ -409,6 +409,7 @@ async def test_anthropic_no_content_error():
 def test_gemini_completion_call_error():
     try:
         print("test completion + streaming")
+        litellm.num_retries = 3
         litellm.set_verbose = True
         messages = [{"role": "user", "content": "what is the capital of congo?"}]
         response = completion(
@@ -593,7 +594,7 @@ def test_completion_claude_3_base64():
         litellm.set_verbose = True
         litellm.num_retries = 3
         image_path = "../proxy/cached_logo.jpg"
-        # Getting the base64-string
+        # Getting the base64 string
         base64_image = encode_image(image_path)
         resp = litellm.completion(
             model="anthropic/claude-3-opus-20240229",

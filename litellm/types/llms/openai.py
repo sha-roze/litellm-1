@@ -16,7 +16,7 @@ from openai.types.beta.thread_create_params import (
 from openai.types.beta.assistant_tool_param import AssistantToolParam
 from openai.types.beta.threads.run import Run
 from openai.types.beta.assistant import Assistant
-from openai.pagination import SyncCursorPage
+from openai.pagination import SyncCursorPage, AsyncCursorPage
 from os import PathLike
 from openai.types import FileObject, Batch
 from openai._legacy_response import HttpxBinaryResponseContent
@@ -136,9 +136,43 @@ class Attachment(TypedDict, total=False):
     """The tools to add this file to."""
 
 
+class ImageFileObject(TypedDict):
+    file_id: Required[str]
+    detail: Optional[str]
+
+
+class ImageURLObject(TypedDict):
+    url: Required[str]
+    detail: Optional[str]
+
+
+class MessageContentTextObject(TypedDict):
+    type: Required[Literal["text"]]
+    text: str
+
+
+class MessageContentImageFileObject(TypedDict):
+    type: Literal["image_file"]
+    image_file: ImageFileObject
+
+
+class MessageContentImageURLObject(TypedDict):
+    type: Required[str]
+    image_url: ImageURLObject
+
+
 class MessageData(TypedDict):
     role: Literal["user", "assistant"]
-    content: str
+    content: Union[
+        str,
+        List[
+            Union[
+                MessageContentTextObject,
+                MessageContentImageFileObject,
+                MessageContentImageURLObject,
+            ]
+        ],
+    ]
     attachments: Optional[List[Attachment]]
     metadata: Optional[dict]
 

@@ -5,6 +5,7 @@ warnings.filterwarnings("ignore", message=".*conflict with protected namespace.*
 ### INIT VARIABLES ###
 import threading, requests, os
 from typing import Callable, List, Optional, Dict, Union, Any, Literal
+from litellm.llms.custom_httpx.http_handler import AsyncHTTPHandler
 from litellm.caching import Cache
 from litellm._logging import (
     set_verbose,
@@ -101,7 +102,9 @@ common_cloud_provider_auth_params: dict = {
 }
 use_client: bool = False
 ssl_verify: bool = True
+ssl_certificate: Optional[str] = None
 disable_streaming_logging: bool = False
+in_memory_llm_clients_cache: dict = {}
 ### GUARDRAILS ###
 llamaguard_model_name: Optional[str] = None
 openai_moderations_model_name: Optional[str] = None
@@ -228,6 +231,7 @@ max_user_budget: Optional[float] = None
 max_end_user_budget: Optional[float] = None
 #### RELIABILITY ####
 request_timeout: float = 6000
+module_level_aclient = AsyncHTTPHandler(timeout=request_timeout)
 num_retries: Optional[int] = None  # per model endpoint
 default_fallbacks: Optional[List] = None
 fallbacks: Optional[List] = None
@@ -779,7 +783,11 @@ from .llms.openai import (
     MistralConfig,
     DeepInfraConfig,
 )
-from .llms.azure import AzureOpenAIConfig, AzureOpenAIError
+from .llms.azure import (
+    AzureOpenAIConfig,
+    AzureOpenAIError,
+    AzureOpenAIAssistantsAPIConfig,
+)
 from .llms.watsonx import IBMWatsonXAIConfig
 from .main import *  # type: ignore
 from .integrations import *
@@ -799,9 +807,11 @@ from .exceptions import (
     APIConnectionError,
     APIResponseValidationError,
     UnprocessableEntityError,
+    LITELLM_EXCEPTION_TYPES,
 )
 from .budget_manager import BudgetManager
 from .proxy.proxy_cli import run_server
 from .router import Router
 from .assistants.main import *
 from .batches.main import *
+from .scheduler import *

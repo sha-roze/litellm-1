@@ -49,7 +49,7 @@ const sidebars = {
         "proxy/alerting",
         {
           type: "category",
-          label: "Logging",
+          label: "🪢 Logging",
           items: ["proxy/logging", "proxy/streaming_logging"],
         },
         "proxy/ui",
@@ -100,13 +100,16 @@ const sidebars = {
     },
     {
       type: "category",
-      label: "Embedding(), Moderation(), Image Generation(), Audio Transcriptions()",
+      label: "Embedding(), Image Generation(), Assistants(), Moderation(), Audio Transcriptions(), TTS(), Batches()",
       items: [
         "embedding/supported_embedding",
         "embedding/async_embedding",
         "embedding/moderation",
         "image_generation",
-        "audio_transcription"
+        "audio_transcription",
+        "text_to_speech",
+        "assistants",
+        "batches",
       ],
     },
     {
@@ -164,6 +167,7 @@ const sidebars = {
     },
     "proxy/custom_pricing",
     "routing",
+    "scheduler",
     "rules",
     "set_keys",
     "budget_manager",
